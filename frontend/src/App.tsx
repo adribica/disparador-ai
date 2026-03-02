@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from './components/GlassCard';
 import { ProspectForm } from './components/ProspectForm';
 
-const API_BASE_URL = 'http://localhost:3001/api';
+// Puxa a URL pela variável de ambiente (Vercel) ou usa localhost como fallback
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 function App() {
     const [activeTab, setActiveTab] = useState<'disparador' | 'extractor' | 'prospector' | 'testador'>('testador');
