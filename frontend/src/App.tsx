@@ -8,7 +8,7 @@ import { ProspectForm } from './components/ProspectForm';
 const API_BASE_URL = 'http://localhost:3001/api';
 
 function App() {
-    const [activeTab, setActiveTab] = useState<'disparador' | 'extractor' | 'prospector'>('prospector');
+    const [activeTab, setActiveTab] = useState<'disparador' | 'extractor' | 'prospector' | 'testador'>('testador');
     // Disparador states
     const [isRunning, setIsRunning] = useState(false);
     const [statusMsg, setStatusMsg] = useState('');
@@ -18,6 +18,13 @@ function App() {
     // Prospector states
     const [prospectStatus, setProspectStatus] = useState<'idle' | 'generating' | 'success'>('idle');
     const [loadingText, setLoadingText] = useState('');
+
+    // Testador states
+    const [testCompany, setTestCompany] = useState('');
+    const [testCity, setTestCity] = useState('');
+    const [testNumber, setTestNumber] = useState('5531987425504');
+    const [testMessage, setTestMessage] = useState('Dá uma olhada nessa demonstração premium que criamos pra você. O que achou?');
+    const [testStatus, setTestStatus] = useState<'idle' | 'generating' | 'success'>('idle');
 
     useEffect(() => {
         let interval = setInterval(async () => {
@@ -107,6 +114,31 @@ function App() {
         }, 5000);
     };
 
+    const handleSingleTest = async () => {
+        if (!testCompany || !testCity || !testNumber) return;
+        setTestStatus('generating');
+
+        try {
+            // Teste 100% individual e instantâneo, batendo no novo controlador `/single` 
+            await axios.post(`${API_BASE_URL}/prospect/single`, {
+                companyName: testCompany,
+                city: testCity,
+                number: testNumber,
+                baseMessage: testMessage
+            });
+
+            // Artificial delay pra success alert sem travar a interface
+            setTimeout(() => setTestStatus('success'), 1500);
+        } catch (e) {
+            console.error(e);
+            setTestStatus('idle');
+        }
+
+        setTimeout(() => {
+            if (testStatus !== 'idle') setTestStatus('idle');
+        }, 6000);
+    };
+
     return (
         <div className={`min-h-screen flex flex-col items-center py-10 transition-colors ${activeTab === 'prospector' ? 'bg-[#F5F5F7] text-[#1d1d1f] selection:bg-blue-500/30' : 'bg-gray-50'}`}>
 
@@ -121,18 +153,18 @@ function App() {
             <div className={`w-full max-w-5xl z-10 shadow-[0_8px_32px_rgba(0,0,0,0.04)] rounded-2xl overflow-hidden transition-all ${activeTab === 'prospector' ? 'bg-white/80 border border-gray-200/50 backdrop-blur-xl' : 'bg-white border border-gray-100'}`}>
 
                 {/* Header */}
-                <div className={`p-8 relative overflow-hidden transition-all ${activeTab === 'prospector' ? 'bg-gradient-to-r from-slate-50 to-white border-b border-gray-100 text-[#1d1d1f]' : 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white'}`}>
+                <div className={`p-8 relative overflow-hidden transition-all ${activeTab === 'prospector' || activeTab === 'testador' ? 'bg-gradient-to-r from-slate-50 to-white border-b border-gray-100 text-[#1d1d1f]' : 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white'}`}>
                     <div className="relative z-10 flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <div className={`p-3 rounded-xl backdrop-blur-sm border ${activeTab === 'prospector' ? 'bg-blue-50/50 border-blue-100/50' : 'bg-white/10 border-white/20'}`}>
+                            <div className={`p-3 rounded-xl backdrop-blur-sm border ${activeTab === 'prospector' || activeTab === 'testador' ? 'bg-blue-50/50 border-blue-100/50' : 'bg-white/10 border-white/20'}`}>
                                 {activeTab === 'prospector' ? <Sparkles className="w-8 h-8 text-blue-600" /> : <Send className="w-8 h-8 text-blue-100" />}
                             </div>
                             <div>
                                 <h1 className="text-3xl font-bold tracking-tight">
-                                    {activeTab === 'prospector' ? 'Stitch MCP' : 'AntiGravity Disparador'}
+                                    {activeTab === 'prospector' ? 'Stitch MCP' : activeTab === 'testador' ? 'Modo de Teste' : 'AntiGravity Disparador'}
                                 </h1>
-                                <p className={`mt-1 text-sm ${activeTab === 'prospector' ? 'text-gray-500' : 'text-blue-100 opacity-90'}`}>
-                                    {activeTab === 'prospector' ? 'Automação de Landing Pages + Disparo via Evolution' : 'Automação Inteligente de WhatsApp com AI'}
+                                <p className={`mt-1 text-sm ${activeTab === 'prospector' || activeTab === 'testador' ? 'text-gray-500' : 'text-blue-100 opacity-90'}`}>
+                                    {activeTab === 'prospector' ? 'Automação de Landing Pages' : activeTab === 'testador' ? 'Simulação de Envio Local (Sem Créditos)' : 'Automação Inteligente de WhatsApp com AI'}
                                 </p>
                             </div>
                         </div>
@@ -140,13 +172,21 @@ function App() {
                 </div>
 
                 {/* Tabs */}
-                <div className={`flex border-b ${activeTab === 'prospector' ? 'border-gray-100' : 'border-gray-200'}`}>
+                <div className={`flex flex-wrap border-b ${activeTab === 'prospector' || activeTab === 'testador' ? 'border-gray-100' : 'border-gray-200'}`}>
                     <button
                         onClick={() => setActiveTab('disparador')}
-                        className={`flex-1 py-4 text-center font-medium transition-colors ${activeTab === 'disparador' ? 'border-b-2 border-blue-600 text-blue-600' : activeTab === 'prospector' ? 'text-gray-400 hover:text-gray-600' : 'text-gray-500 hover:text-gray-700'}`}
+                        className={`flex-1 py-4 text-center font-medium transition-colors ${activeTab === 'disparador' ? 'border-b-2 border-blue-600 text-blue-600' : activeTab === 'prospector' || activeTab === 'testador' ? 'text-gray-400 hover:text-gray-600' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         <div className="flex items-center justify-center gap-2">
-                            <MessageSquare className="w-5 h-5" /> Motor de Disparo
+                            <MessageSquare className="w-5 h-5" /> Disparo em Massa
+                        </div>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('testador')}
+                        className={`flex-1 py-4 text-center font-medium transition-colors ${activeTab === 'testador' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        <div className="flex items-center justify-center gap-2">
+                            <Send className="w-5 h-5" /> Teste Individual
                         </div>
                     </button>
                     <button
@@ -154,7 +194,7 @@ function App() {
                         className={`flex-1 py-4 text-center font-medium transition-colors ${activeTab === 'prospector' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                         <div className="flex items-center justify-center gap-2">
-                            <Sparkles className="w-5 h-5" /> Prospecção IA (Stitch)
+                            <Sparkles className="w-5 h-5" /> Prospector (Old n8n)
                         </div>
                     </button>
                 </div>
@@ -284,6 +324,85 @@ function App() {
                                     </motion.div>
                                 )}
                             </AnimatePresence>
+                        </div>
+                    )}
+
+                    {activeTab === 'testador' && (
+                        <div className="max-w-xl mx-auto space-y-6">
+                            <div className="bg-blue-50 text-blue-800 p-4 rounded-lg flex items-start gap-4 text-sm border border-blue-100">
+                                <div><Send className="w-5 h-5" /></div>
+                                <div>
+                                    <p className="font-semibold">Teste o Fluxo Sem Gastar IA (100% Mock Local)</p>
+                                    <p className="mt-1 opacity-90">Coloque o nome e cidade de uma empresa abaixo. Nosso backend usará templates locais para gerar o print e enviar *diretamente* ao seu WhatsApp, sem demoras do fluxo em massa.</p>
+                                </div>
+                            </div>
+
+                            {testStatus === 'success' && (
+                                <div className="bg-green-50 text-green-700 p-4 rounded-lg flex flex-col items-center justify-center border border-green-200 shadow-sm animate-fade-in-up">
+                                    <CheckCircle2 className="w-8 h-8 mb-2 text-green-500" />
+                                    <p className="font-bold">Enviado!</p>
+                                    <p className="text-sm">Confira seu WhatsApp.</p>
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Empresa a Simular</label>
+                                <input
+                                    type="text"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    placeholder="Ex: Padaria Bella Vista"
+                                    value={testCompany}
+                                    onChange={(e) => setTestCompany(e.target.value)}
+                                    disabled={testStatus === 'generating'}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Cidade Base</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                        placeholder="Ex: São Paulo"
+                                        value={testCity}
+                                        onChange={(e) => setTestCity(e.target.value)}
+                                        disabled={testStatus === 'generating'}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Seu WhatsApp</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                        placeholder="5531..."
+                                        value={testNumber}
+                                        onChange={(e) => setTestNumber(e.target.value)}
+                                        disabled={testStatus === 'generating'}
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Mensagem Exemplo</label>
+                                <textarea
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    rows={3}
+                                    value={testMessage}
+                                    onChange={(e) => setTestMessage(e.target.value)}
+                                    disabled={testStatus === 'generating'}
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleSingleTest}
+                                disabled={testStatus === 'generating' || !testCompany || !testCity}
+                                className="w-full bg-[#1d1d1f] disabled:bg-gray-400 hover:bg-black text-white font-bold py-3.5 px-6 rounded-lg transition-transform active:scale-[0.98] flex justify-center items-center gap-2 shadow-lg"
+                            >
+                                {testStatus === 'generating' ? (
+                                    <><Loader2 className="w-5 h-5 animate-spin" /> Processando Teste...</>
+                                ) : (
+                                    <><Play className="w-5 h-5" /> Enviar Teste Imediato </>
+                                )}
+                            </button>
                         </div>
                     )}
                 </div>

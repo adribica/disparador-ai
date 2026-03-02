@@ -215,6 +215,52 @@ app.post('/api/prospect/bulk', async (req, res) => {
     }
 });
 
+// NOVO ENDPOINT: Geração + Disparo de Teste Único (Fase 9)
+// Aceita dados de 1 único lead para envio manual e validação (Sem gastar IA excessiva)
+app.post('/api/prospect/single', async (req, res) => {
+    const { companyName, city, number, baseMessage } = req.body;
+
+    if (!companyName || !city || !number || !baseMessage) {
+        return res.status(400).json({ error: 'Todos os campos (companyName, city, number, baseMessage) são obrigatórios.' });
+    }
+
+    // Retorna HTTP 200 rápido para não prender o UX no Frontend, e continua rodando em background
+    res.json({ message: 'Teste individual iniciado. A mensagem deve chegar em breve.' });
+
+    try {
+        console.log(`\n======================================================`);
+        console.log(`[SINGLE TEST] Testando lead: ${companyName} (${city}) para +${number}`);
+
+        // 1. Google Places (Enriquecimento)
+        const companyData = await enrichCompanyData(companyName, city);
+
+        // 2. Stitch MCP (Mock HTML Local - Nao gasta creditos)
+        const htmlFilePath = await generateSiteWithStitch(companyData.name, city, companyData.primaryColor, companyData.types[0]);
+
+        // 3. Puppeteer Screenshot
+        const screenshotBase64 = await takeScreenshot(htmlFilePath, companyData.name);
+        console.log(`[SINGLE TEST] Screenshot OK.`);
+
+        // 4. Disparo (Evolution API)
+        const caption = `[TESTE ANTI-GRAVITY]\nConfira a demonstração gerada para *${companyData.name}*!`;
+        console.log(`[SINGLE TEST] Enviando imagem teste via Evolution API...`);
+
+        const mediaSent = await sendMediaMessage(number, screenshotBase64, caption);
+        if (mediaSent) {
+            console.log(`[SINGLE TEST] Imagem enviada com sucesso, aguardando 2s para enviar texto base...`);
+            await sleep(2000);
+            await sendTextMessage(number, `*Mensagem Original:*\n\n${baseMessage}`);
+            console.log(`[SINGLE TEST] Fluxo de mensagem OK.`);
+        } else {
+            console.log(`[SINGLE TEST] Falha no disparo da imagem de teste.`);
+        }
+
+        console.log(`======================================================\n`);
+    } catch (e) {
+        console.error(`[SINGLE TEST] Erro no teste individual:`, e);
+    }
+});
+
 app.post('/api/stop', (req, res) => {
     if (!isRunning) {
         return res.status(400).json({ error: 'Nenhum processo em execução.' });
