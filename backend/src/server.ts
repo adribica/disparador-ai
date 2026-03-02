@@ -7,7 +7,11 @@ import { getRandomDelay, sleep } from './utils/delay';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+app.use(cors({
+    origin: '*', // Permite a Vercel acessar a API local sem bloqueios de Origin (em dev/test stage)
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Armazena o estado do sistema se estiver rodando
@@ -17,6 +21,39 @@ let killSwitch = false;
 // Rota de status do Backend
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', running: isRunning });
+});
+
+// ==========================================
+// SSE (Server-Sent Events) - Stream de Logs
+// ==========================================
+let clients: express.Response[] = [];
+
+// Função auxiliar para disparar os eventos de log pro frontend em tempo real
+const broadcastLog = (message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
+    const logEntry = JSON.stringify({ message, type, timestamp: new Date().toISOString() });
+
+    // Mostra no console local também
+    if (type === 'error') console.error(message);
+    else if (type === 'warning') console.warn(message);
+    else console.log(message);
+
+    // Envia aos navegadores conectados
+    clients.forEach(client => {
+        client.write(`data: ${logEntry}\n\n`);
+    });
+};
+
+app.get('/api/logs', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    clients.push(res);
+
+    req.on('close', () => {
+        clients = clients.filter(client => client !== res);
+    });
 });
 
 // Importando serviços da automação de prospecção (Stitch + Puppeteer)
@@ -146,15 +183,20 @@ app.post('/api/prospect/bulk', async (req, res) => {
     res.json({ message: 'Processo inteligente de geração e disparo iniciado em background.' });
 
     try {
-        console.log(`\n======================================================`);
-        console.log(`[BULK PROSPECT] Iniciando automação para ${leads.length} leads...`);
+        broadcastLog(`\n======================================================`);
+        broadcastLog(`[BULK PROSPECT] Iniciando automação para ${leads.length} leads...`);
 
-        console.log(`[BULK PROSPECT] Rotacionando copy base no Gemini...`);
+        broadcastLog(`[BULK PROSPECT] Rotacionando copy base no Gemini...`);
         const messageVariations = await generateMessageVariations(baseMessage);
 
         for (let i = 0; i < leads.length; i++) {
+            // Se estiver pausado, trava o loop aqui indefinidamente até soltarem
+            while (isPaused && !killSwitch) {
+                await sleep(2000);
+            }
+
             if (killSwitch) {
-                console.log('[BULK PROSPECT] Processo interrompido pelo usuário.');
+                broadcastLog('[BULK PROSPECT] Processo INTERROMPIDO a pedido do usuário.', 'warning');
                 break;
             }
 
@@ -162,11 +204,11 @@ app.post('/api/prospect/bulk', async (req, res) => {
             const { companyName, city, number } = lead;
 
             if (!companyName || !city || !number) {
-                console.warn(`[BULK PROSPECT] Pulando lead inválido index ${i}`);
+                broadcastLog(`[BULK PROSPECT] Pulando lead inválido index ${i}`, 'warning');
                 continue;
             }
 
-            console.log(`\n--- Processando lead ${i + 1}/${leads.length}: ${companyName} (${city}) ---`);
+            broadcastLog(`\n--- Processando lead ${i + 1}/${leads.length}: ${companyName} (${city}) ---`);
 
             // 1. Google Places
             const companyData = await enrichCompanyData(companyName, city);
@@ -176,12 +218,12 @@ app.post('/api/prospect/bulk', async (req, res) => {
 
             // 3. Puppeteer
             const screenshotBase64 = await takeScreenshot(htmlFilePath, companyData.name);
-            console.log(`[BULK PROSPECT] Screenshot OK.`);
+            broadcastLog(`[BULK PROSPECT] Screenshot OK.`);
 
             // 4. Disparo (Evolution API) - Primeiro a Mídia, depois o Texto
             const caption = `Confira a demonstração que criamos para *${companyData.name}*!`;
 
-            console.log(`[BULK PROSPECT] Enviando imagem via Evolution API...`);
+            broadcastLog(`[BULK PROSPECT] Enviando imagem via Evolution API...`);
             const mediaSent = await sendMediaMessage(number, screenshotBase64, caption);
 
             if (mediaSent) {
@@ -189,27 +231,27 @@ app.post('/api/prospect/bulk', async (req, res) => {
                 const randomIndex = Math.floor(Math.random() * messageVariations.length);
                 const textFollowUp = messageVariations[randomIndex] ?? baseMessage;
 
-                console.log(`[BULK PROSPECT] Aguardando 3s antes do texto rotacional...`);
+                broadcastLog(`[BULK PROSPECT] Aguardando 3s antes do texto rotacional...`);
                 await sleep(3000);
 
                 await sendTextMessage(number, textFollowUp);
-                console.log(`[BULK PROSPECT] Fluxo de mensagem OK para +${number}`);
+                broadcastLog(`[BULK PROSPECT] Fluxo de mensagem OK para +${number}`, 'success');
             } else {
-                console.log(`[BULK PROSPECT] Mídia falhou para +${number}, pulando texto.`);
+                broadcastLog(`[BULK PROSPECT] Mídia falhou para +${number}, pulando texto.`, 'error');
             }
 
             // 5. Anti-Ban Seguro (se não for o último)
             if (i < leads.length - 1 && !killSwitch) {
                 // Aumentando delay pois manda site (pode ser visto como spam mais pesado se repetido mto rapido)
                 const delayMs = getRandomDelay(45, 85);
-                console.log(`[BULK PROSPECT] Aguardando cooldown de anti-ban: ${(delayMs / 1000).toFixed(1)}s`);
+                broadcastLog(`[BULK PROSPECT] Aguardando cooldown de anti-ban: ${(delayMs / 1000).toFixed(1)}s`, 'warning');
                 await sleep(delayMs);
             }
         }
-        console.log(`[BULK PROSPECT] Processo Finalizado.`);
-        console.log(`======================================================\n`);
-    } catch (e) {
-        console.error('[BULK PROSPECT] Erro interno:', e);
+        broadcastLog(`[BULK PROSPECT] Processo Finalizado.`, 'success');
+        broadcastLog(`======================================================\n`);
+    } catch (e: any) {
+        broadcastLog(`[BULK PROSPECT] Erro interno: ${e.message}`, 'error');
     } finally {
         isRunning = false;
     }
@@ -228,8 +270,8 @@ app.post('/api/prospect/single', async (req, res) => {
     res.json({ message: 'Teste individual iniciado. A mensagem deve chegar em breve.' });
 
     try {
-        console.log(`\n======================================================`);
-        console.log(`[SINGLE TEST] Testando lead: ${companyName} (${city}) para +${number}`);
+        broadcastLog(`\n======================================================`);
+        broadcastLog(`[SINGLE TEST] Testando lead: ${companyName} (${city}) para +${number}`);
 
         // 1. Google Places (Enriquecimento)
         const companyData = await enrichCompanyData(companyName, city);
@@ -239,34 +281,57 @@ app.post('/api/prospect/single', async (req, res) => {
 
         // 3. Puppeteer Screenshot
         const screenshotBase64 = await takeScreenshot(htmlFilePath, companyData.name);
-        console.log(`[SINGLE TEST] Screenshot OK.`);
+        broadcastLog(`[SINGLE TEST] Screenshot OK.`);
 
         // 4. Disparo (Evolution API)
         const caption = `[TESTE ANTI-GRAVITY]\nConfira a demonstração gerada para *${companyData.name}*!`;
-        console.log(`[SINGLE TEST] Enviando imagem teste via Evolution API...`);
+        broadcastLog(`[SINGLE TEST] Enviando imagem teste via Evolution API...`);
 
         const mediaSent = await sendMediaMessage(number, screenshotBase64, caption);
         if (mediaSent) {
-            console.log(`[SINGLE TEST] Imagem enviada com sucesso, aguardando 2s para enviar texto base...`);
+            broadcastLog(`[SINGLE TEST] Imagem enviada com sucesso, aguardando 2s para enviar texto base...`);
             await sleep(2000);
             await sendTextMessage(number, `*Mensagem Original:*\n\n${baseMessage}`);
-            console.log(`[SINGLE TEST] Fluxo de mensagem OK.`);
+            broadcastLog(`[SINGLE TEST] Fluxo de mensagem OK.`, 'success');
         } else {
-            console.log(`[SINGLE TEST] Falha no disparo da imagem de teste.`);
+            broadcastLog(`[SINGLE TEST] Falha no disparo da imagem de teste.`, 'error');
         }
 
-        console.log(`======================================================\n`);
-    } catch (e) {
-        console.error(`[SINGLE TEST] Erro no teste individual:`, e);
+        broadcastLog(`======================================================\n`);
+    } catch (e: any) {
+        broadcastLog(`[SINGLE TEST] Erro no teste individual: ${e.message}`, 'error');
     }
 });
+
+// Variável adicional para o controle de Pausa
+let isPaused = false;
 
 app.post('/api/stop', (req, res) => {
     if (!isRunning) {
         return res.status(400).json({ error: 'Nenhum processo em execução.' });
     }
     killSwitch = true;
-    res.json({ message: 'Sinal de parada enviado. O envio cessará no próximo ciclo.' });
+    isPaused = false; // Tira do pause se estiver
+    broadcastLog('[SISTEMA] Sinal de Parada Definitiva Recebido.', 'warning');
+    res.json({ message: 'Sinal de parada enviado. O envio cessará no próximo passo.' });
+});
+
+app.post('/api/pause', (req, res) => {
+    if (!isRunning) {
+        return res.status(400).json({ error: 'Nenhum processo em execução para pausar.' });
+    }
+    isPaused = true;
+    broadcastLog('[SISTEMA] ⏸️ Automação PAUSADA pelo usuário. Aguardando comando...', 'warning');
+    res.json({ message: 'Sistema Pausado com sucesso.' });
+});
+
+app.post('/api/resume', (req, res) => {
+    if (!isRunning || !isPaused) {
+        return res.status(400).json({ error: 'Nenhum processo pausado para continuar.' });
+    }
+    isPaused = false;
+    broadcastLog('[SISTEMA] ▶️ Automação RETOMADA.', 'success');
+    res.json({ message: 'Sistema Retomado.' });
 });
 
 app.listen(PORT, () => {
