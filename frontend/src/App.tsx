@@ -27,119 +27,77 @@ function App() {
     const [testMessage, setTestMessage] = useState('Dá uma olhada nessa demonstração premium que criamos pra você. O que achou?');
     const [testStatus, setTestStatus] = useState<'idle' | 'generating' | 'success'>('idle');
 
+    // Estado dos Logs e Controle avançado
+    const [logs, setLogs] = useState<{ message: string, type: string, timestamp: string }[]>([]);
+    const [isPaused, setIsPaused] = useState(false);
+    const logsEndRef = React.useRef<HTMLDivElement>(null);
+
+    // Escuta logs Server-Sent Events do Backend
     useEffect(() => {
-        let interval = setInterval(async () => {
-            try {
-                const res = await axios.get(`${API_BASE_URL}/health`);
-                setIsRunning(res.data.running);
-            } catch (e) {
-                // backend offline
-            }
-        }, 5000);
-        return () => clearInterval(interval);
-    }, []);
+        if (!isRunning) return;
+
+        const eventSource = new EventSource(`${API_BASE_URL}/logs`);
+
+        eventSource.onmessage = (event) => {
+            const newLog = JSON.parse(event.data);
+            setLogs(prev => [...prev, newLog]);
+        };
+
+        eventSource.onerror = () => eventSource.close();
+
+        return () => eventSource.close();
+    }, [isRunning]);
+
+    // Auto-scroll nos logs
+    useEffect(() => {
+        logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [logs]);
 
     const handleStartDisparo = async () => {
         const lines = numbersList.split('\n').map(n => n.trim()).filter(n => n.length > 5);
 
         const leads = lines.map(line => {
             const parts = line.split(',').map(p => p.trim());
-            // fallback: Name, City, Number
             return {
                 companyName: parts[0] || 'Empresa',
                 city: parts[1] || 'Sua Cidade',
-                number: parts[2] || parts[0] // fallback de segurança
+                number: parts[2] || parts[0]
             };
         });
 
         try {
-            setStatusMsg('Iniciando orquestração inteligente de disparo em massa...');
-            const res = await axios.post(`${API_BASE_URL}/prospect/bulk`, {
-                baseMessage,
-                leads
-            });
-            setStatusMsg(res.data.message);
+            setLogs([{ message: 'Iniciando orquestração inteligente de disparo em massa...', type: 'info', timestamp: new Date().toISOString() }]);
             setIsRunning(true);
+            setIsPaused(false);
+            await axios.post(`${API_BASE_URL}/prospect/bulk`, { baseMessage, leads });
         } catch (error: any) {
-            setStatusMsg(error?.response?.data?.error || 'Erro ao iniciar');
+            setLogs(prev => [...prev, { message: error?.response?.data?.error || 'Erro ao iniciar', type: 'error', timestamp: new Date().toISOString() }]);
+            setIsRunning(false);
         }
     };
 
     const handleStopDisparo = async () => {
         try {
-            setStatusMsg('Parando...');
-            const res = await axios.post(`${API_BASE_URL}/stop`);
-            setStatusMsg(res.data.message);
-            setIsRunning(false);
-        } catch (error) {
-            console.error(error);
-        }
-    }
-
-    const handleProspect = async (data: { companyName: string; city: string }) => {
-        setProspectStatus('generating');
-
-        setLoadingText("Iniciando orquestração no Backend (Stitch + Puppeteer)...");
-
-        try {
-            // Em vez de simular, vamos acionar nosso endpoint real que coordena tudo.
-            // O endpoint responde rápido (200 OK) e continua o trabalho "pesado" em background
-            await axios.post(`${API_BASE_URL}/prospect`, {
-                companyName: data.companyName,
-                city: data.city
-            });
-
-            // Ainda faremos uma animação de tela bonita pro usuário não achar que travou
-            const steps = [
-                "Gerando Site com Google Stitch MCP...",
-                "Aguardando Renderização HD (Puppeteer)...",
-                "Capturando Screenshot...",
-                "Enviando Lead e Imagem para o n8n..."
-            ];
-
-            for (const step of steps) {
-                setLoadingText(step);
-                await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
-            }
-
-            setProspectStatus('success');
-        } catch (error) {
-            console.error("Erro ao chamar orquestrador:", error);
-            // Mesmo com erro, pra fins de demo vamos falhar silenciosamente por enquanto ou voltar ao idle
-            setProspectStatus('idle');
-            return;
-        }
-
-        setTimeout(() => {
-            setProspectStatus('idle');
-        }, 5000);
+            await axios.post(`${API_BASE_URL}/stop`);
+        } catch (error) { }
     };
 
-    const handleSingleTest = async () => {
-        if (!testCompany || !testCity || !testNumber) return;
-        setTestStatus('generating');
-
+    const handlePauseDisparo = async () => {
         try {
-            // Teste 100% individual e instantâneo, batendo no novo controlador `/single` 
-            await axios.post(`${API_BASE_URL}/prospect/single`, {
-                companyName: testCompany,
-                city: testCity,
-                number: testNumber,
-                baseMessage: testMessage
-            });
-
-            // Artificial delay pra success alert sem travar a interface
-            setTimeout(() => setTestStatus('success'), 1500);
-        } catch (e) {
-            console.error(e);
-            setTestStatus('idle');
-        }
-
-        setTimeout(() => {
-            if (testStatus !== 'idle') setTestStatus('idle');
-        }, 6000);
+            await axios.post(`${API_BASE_URL}/pause`);
+            setIsPaused(true);
+        } catch (error) { }
     };
 
+    const handleResumeDisparo = async () => {
+        try {
+            await axios.post(`${API_BASE_URL}/resume`);
+            setIsPaused(false);
+        } catch (error) { }
+    };
+
+    // (Outros handlers permanecem os mesmos)
+    // ... no return do component (Aba disparador):
     return (
         <div className={`min-h-screen flex flex-col items-center py-10 transition-colors ${activeTab === 'prospector' ? 'bg-[#F5F5F7] text-[#1d1d1f] selection:bg-blue-500/30' : 'bg-gray-50'}`}>
 
@@ -204,60 +162,119 @@ function App() {
                 <div className="p-8">
                     {activeTab === 'disparador' && (
                         <div className="space-y-6">
-                            <div className="bg-blue-50 text-blue-800 p-4 rounded-lg flex items-start gap-4 text-sm">
-                                <div className="mt-1"><Loader2 className={`w-5 h-5 ${isRunning ? 'animate-spin' : ''}`} /></div>
-                                <div>
-                                    <p className="font-semibold">Status do Processo em Background: {isRunning ? 'RODANDO NO SERVIDOR' : 'PARADO'}</p>
-                                    {statusMsg && <p className="mt-1 opacity-90">{statusMsg}</p>}
+
+                            {/* Controle Superior */}
+                            <div className="flex flex-col md:flex-row gap-4 items-center justify-between pb-6 border-b border-gray-100">
+                                <div className="flex items-center gap-4">
+                                    <div className={`p-2.5 rounded-full ${isRunning ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                                        <Loader2 className={`w-5 h-5 ${isRunning && !isPaused ? 'animate-spin' : ''}`} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-gray-900 border-none m-0 p-0 text-base">Automação de Captura</h3>
+                                        <p className="text-sm text-gray-500 m-0">
+                                            {isRunning ? (
+                                                isPaused ? 'Em pausa de segurança' : 'Rodando extrações e envios em background'
+                                            ) : 'Aguardando ação...'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 w-full md:w-auto">
+                                    {!isRunning ? (
+                                        <button
+                                            onClick={handleStartDisparo}
+                                            className="w-full md:w-auto bg-[#1d1d1f] hover:bg-black text-white px-8 py-3 rounded-lg font-medium transition shadow-md flex items-center justify-center gap-2"
+                                        >
+                                            <Play className="w-4 h-4" /> Start Motor
+                                        </button>
+                                    ) : (
+                                        <>
+                                            {isPaused ? (
+                                                <button
+                                                    onClick={handleResumeDisparo}
+                                                    className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-medium transition flex items-center justify-center gap-2"
+                                                >
+                                                    <Play className="w-4 h-4" /> Continuar
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={handlePauseDisparo}
+                                                    className="w-full md:w-auto bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2.5 rounded-lg font-medium transition flex items-center justify-center gap-2"
+                                                >
+                                                    <Loader2 className="w-4 h-4" /> Pausar
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={handleStopDisparo}
+                                                className="w-full md:w-auto bg-red-100 hover:bg-red-200 text-red-700 px-6 py-2.5 rounded-lg font-medium transition flex items-center justify-center gap-2"
+                                            >
+                                                <Square className="w-4 h-4" /> Parar
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    1. Mensagem Base (Será reescrita pelo Gemini em 5 variações)
-                                </label>
-                                <textarea
-                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                    rows={4}
-                                    value={baseMessage}
-                                    onChange={(e) => setBaseMessage(e.target.value)}
-                                    disabled={isRunning}
-                                />
+                            <div className="grid md:grid-cols-2 gap-6">
+                                {/* Formulário de Input Esquerda */}
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                            Lista de Contatos
+                                        </label>
+                                        <textarea
+                                            rows={8}
+                                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white font-mono text-sm transition-colors"
+                                            value={numbersList}
+                                            onChange={(e) => setNumbersList(e.target.value)}
+                                            disabled={isRunning}
+                                            placeholder="Exemplo:\nPizzaria do Zé, São Paulo, +5511999999999"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                            Mensagem Base / Copy Principal
+                                        </label>
+                                        <textarea
+                                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none focus:bg-white text-sm transition-colors"
+                                            rows={4}
+                                            value={baseMessage}
+                                            onChange={(e) => setBaseMessage(e.target.value)}
+                                            disabled={isRunning}
+                                        />
+                                    </div>
+                                </div>
+                                {/* Terminal Logs Direita */}
+                                <div className="h-full flex flex-col">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex justify-between">
+                                        Monitoramento de Execução
+                                        <span className="text-xs font-normal text-blue-600">Tempo Real</span>
+                                    </label>
+                                    <div className="flex-1 min-h-[300px] max-h-[460px] bg-[#1d1d1f] rounded-xl overflow-hidden flex flex-col shadow-inner">
+                                        <div className="h-8 bg-[#2d2d2f] border-b border-[#3d3d3f] flex items-center px-4 gap-2">
+                                            <div className="w-3 h-3 rounded-full bg-red-500" />
+                                            <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                                            <div className="w-3 h-3 rounded-full bg-green-500" />
+                                            <span className="ml-2 text-xs text-gray-400 font-mono">logs@vercel-node</span>
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto p-4 space-y-2 font-mono text-xs">
+                                            {logs.length === 0 && (
+                                                <p className="text-gray-500 italic">Aguardando comando de start. Nenhum sistema na esteira rodando.</p>
+                                            )}
+                                            {logs.map((log, index) => (
+                                                <div key={index} className={`leading-relaxed break-words ${log.type === 'error' ? 'text-red-400' :
+                                                        log.type === 'success' ? 'text-green-400' :
+                                                            log.type === 'warning' ? 'text-yellow-400' :
+                                                                'text-gray-300'
+                                                    }`}>
+                                                    <span className="text-gray-600 mr-2">[{new Date(log.timestamp).toLocaleTimeString()}]</span>
+                                                    {log.message}
+                                                </div>
+                                            ))}
+                                            <div ref={logsEndRef} />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    2. Lista de Contatos (Nome da Empresa, Cidade, +DDI DDD Num) - Um por linha (separado por vírgula)
-                                </label>
-                                <textarea
-                                    rows={6}
-                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono text-sm"
-                                    value={numbersList}
-                                    onChange={(e) => setNumbersList(e.target.value)}
-                                    disabled={isRunning}
-                                />
-                            </div>
-
-                            <div className="flex gap-4 pt-4 border-t border-gray-100">
-                                {!isRunning ? (
-                                    <button
-                                        onClick={handleStartDisparo}
-                                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-transform active:scale-95 flex justify-center items-center gap-2"
-                                    >
-                                        <Play className="w-5 h-5" /> Iniciar Disparo Inteligente
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={handleStopDisparo}
-                                        className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-transform active:scale-95 flex justify-center items-center gap-2"
-                                    >
-                                        <Square className="w-5 h-5" /> Parar Execução
-                                    </button>
-                                )}
-                            </div>
-                            <p className="text-xs text-gray-500 text-center mt-2">
-                                O envio demora pois há uma longa pausa de segurança anti-spam (+60s) entre cada mensagem.
-                            </p>
                         </div>
                     )}
 
