@@ -1,28 +1,26 @@
-# Design System: Apple-Inspired Minimalist Light Theme
+# Design System: High-End Adaptive & Conversion-Focused
 **Project ID:** 18171248685377189422
 
 ## 1. Visual Theme & Atmosphere
-The mood is "Premium, Clean, Minimalist, and High-End Corporate." It feels like stepping into an Apple Store or using a high-fidelity productivity tool created by Apple. We rely on a predominantly pure white and light gray background contrasted with sharp, deep black typography. Space should feel exceptionally airy and perfectly balanced. We avoid heavy gradients and instead use ultra-refined subtle shadows (soft dropshadows) to convey depth.
+The mood is "Premium, High-Conversion, Dynamic, and Unique to the Client's Niche." The design must adapt to the industry (e.g., warm and inviting for restaurants, sleek and trustworthy for clinics/tech, luxurious for real estate). We rely on high-fidelity visual elements: Glassmorphism, deep and soft drop-shadows, rich gradients, and dynamic layouts. The aesthetic should feel highly expensive and custom-made.
 
 ## 2. Color Palette & Roles
-*   **Snow White (#FFFFFF):** The foundational background color. Used for the entire app canvas to create an infinite, crisp, clean feel.
-*   **Jet Black (#1D1D1F):** Used for primary typography, icons, and hero messaging to ensure absolute legibility and a premium stance. Very slightly softer than #000000.
-*   **Silver Cloud (#F5F5F7):** Used for secondary backgrounds, cards, and input fields to separate them slightly from the pure white background without being aggressive.
-*   **Graphite Gray (#86868B):** Used for secondary text, metadata, and subtle UI elements.
-*   **System Blue (#0066CC):** The primary brand/accent color. Used sparingly for primary calls-to-action (buttons), links, and active states to guide the eye flawlessly.
-*   **Subtle Border (#E5E5EA):** Used for extremely light 1px borders to define structure where empty space isn't enough.
+*   **Primary Brand Color:** You will receive a \`<PrimaryColor>\` parameter. This must be the hero of the design. Use it for primary Call-to-Actions (CTAs), prominent headings, active states, and soft background glows.
+*   **Backgrounds:** Do not restrict to pure white. Use off-whites, subtle gray gradients, or elegant dark sections (especially for the Hero area) depending on the brand feel. 
+*   **Typography Colors:** High contrast. Pure white (#FFF) on dark sections, deep charcoal (#111827) on light sections for extreme legibility.
+*   **Accents:** Generate 1-2 complementary colors based on the \`<PrimaryColor>\` to add vibrancy (e.g., if Primary is Blue, use a subtle Teal or Purple for gradient accents).
 
 ## 3. Typography Rules
-*   **Primary Font:** San Francisco (SF Pro) or equivalent clean geometric neo-grotesque sans-serif (e.g., Inter/Roboto).
-*   **Headings (H1/H2):** High font-weight (Bold/Semibold), tight letter-spacing (`tracking-tight`), rendered in Jet Black.
-*   **Body & Utility:** Regular weight, comfortable line-height for perfect readability, rendered in Graphite Gray or Jet Black depending on importance.
+*   **Primary Font:** Modern geometric sans-serif (e.g., Inter, Plus Jakarta Sans, Outfit, or Poppins).
+*   **Headings (H1/H2):** Bold (700-800 weight), tight letter-spacing (`tracking-tighter`). Make Hero H1s massive (text-5xl to text-7xl) to demand attention.
+*   **Body & Utility:** Regular weight, extremely readable line-heights (`leading-relaxed`).
 
-## 4. Component Stylings
-*   **Buttons:** Generously rounded corners (pill-shaped or `rounded-full`). Primary buttons should be System Blue with white text. No heavy shadows; rely on crisp contrast.
-*   **Cards/Containers:** Crisp appearance. Background should be Snow White or Silver Cloud. Corners must be generously rounded (16px to 24px / `rounded-2xl`). Borders are usually omitted in favor of very soft, large-spread drop shadows (e.g., `box-shadow: 0 4px 24px rgba(0,0,0,0.04)`), or a simple 1px Subtle Border if flat.
-*   **Inputs/Forms:** Clean fields with Silver Cloud backgrounds (`bg-[#F5F5F7]`). Minimal to no borders until focused, where a subtle System Blue ring appears.
+## 4. Component Stylings & Layout
+*   **Buttons:** Must pop. Use the Primary Color. Employ generous padding (`px-8 py-4`), bold text, and hover effects (e.g., transform, shadow-lg). Rounded corners depend on the niche (pill-shaped for modern/tech, softly rounded for corporate).
+*   **Cards/Containers:** Use Glassmorphism (translucency + background blur) heavily over gradient backgrounds or images to create depth. Use soft, large-spread drop shadows (`shadow-2xl` with a colored tint like `shadow-brand-500/20`).
+*   **Hero Section:** Must be the focal point. Use either a split layout (Text left, stunning dynamic image/3D mockup right) or a centered layout with a massive background image overlaid with a dark gradient to make the white text pop.
+*   **Images:** Use full-bleed, edge-to-edge images or dynamically shaped image masks. Avoid boring square boxes.
 
 ## 5. Layout Principles
-*   **Whitespace:** "Extensive negative space." Let the content breathe heavily. Margins and padding should be huge (e.g., `p-8` or `p-12` for standard cards).
-*   **Focus / Alignment:** Content should be perfectly aligned, often center-aligned for hero sections and robustly left-aligned for data.
-*   **Depth:** Depth is created by very soft, elevated shadows beneath white cards sitting on top of a very light gray canvas, mimicking physical layers of high-quality paper.
+*   **Whitespace:** "Extensive negative space." Let the content breathe heavily. Margins and padding should be huge.
+*   **Adaptability:** The copy and the layout structure MUST reflect the client's specific industry context that you receive. A restaurant needs food imagery and a "Reserve a Table" CTA; a law firm needs a trustworthy hero and a "Schedule Consultation" CTA.
