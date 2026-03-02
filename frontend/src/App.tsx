@@ -60,21 +60,36 @@ function App() {
     const handleProspect = async (data: { companyName: string; city: string }) => {
         setProspectStatus('generating');
 
-        const steps = [
-            "Iniciando integração com Stitch MCP...",
-            "Analisando cores da " + data.companyName + "...",
-            "Gerando Design System Semântico...",
-            "Renderizando Landing Page...",
-            "Tirando Screenshot High-Res...",
-            "Disparando via Evolution API..."
-        ];
+        setLoadingText("Iniciando orquestração no Backend (Stitch + Puppeteer)...");
 
-        for (const step of steps) {
-            setLoadingText(step);
-            await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1500));
+        try {
+            // Em vez de simular, vamos acionar nosso endpoint real que coordena tudo.
+            // O endpoint responde rápido (200 OK) e continua o trabalho "pesado" em background
+            await axios.post(`${API_BASE_URL}/prospect`, {
+                companyName: data.companyName,
+                city: data.city
+            });
+
+            // Ainda faremos uma animação de tela bonita pro usuário não achar que travou
+            const steps = [
+                "Gerando Site com Google Stitch MCP...",
+                "Aguardando Renderização HD (Puppeteer)...",
+                "Capturando Screenshot...",
+                "Enviando Lead e Imagem para o n8n..."
+            ];
+
+            for (const step of steps) {
+                setLoadingText(step);
+                await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
+            }
+
+            setProspectStatus('success');
+        } catch (error) {
+            console.error("Erro ao chamar orquestrador:", error);
+            // Mesmo com erro, pra fins de demo vamos falhar silenciosamente por enquanto ou voltar ao idle
+            setProspectStatus('idle');
+            return;
         }
-
-        setProspectStatus('success');
 
         setTimeout(() => {
             setProspectStatus('idle');
