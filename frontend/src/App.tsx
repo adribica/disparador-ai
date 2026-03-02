@@ -1,18 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Send, Loader2, Play, Square, MessageSquare, Sparkles, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from './components/GlassCard';
 import { ProspectForm } from './components/ProspectForm';
 
-// Puxa a URL pela variável de ambiente (Vercel) ou usa localhost como fallback
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// Hardcoded temporariamente para furar o cache da Vercel durante o ambiente de Testes
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://late-hornets-tie.loca.lt/api';
 
 function App() {
     const [activeTab, setActiveTab] = useState<'disparador' | 'extractor' | 'prospector' | 'testador'>('testador');
     // Disparador states
     const [isRunning, setIsRunning] = useState(false);
-    const [statusMsg, setStatusMsg] = useState('');
     const [baseMessage, setBaseMessage] = useState('Olá! Gostaríamos de apresentar nosso novo produto revolucionário. Dê uma olhada no site que nossa inteligência artificial montou pra você:');
     const [numbersList, setNumbersList] = useState('Pizzaria do Zé, São Paulo, +5511999999999\nClínica Sorriso, Rio de Janeiro, +5521888888888');
 
@@ -30,7 +29,7 @@ function App() {
     // Estado dos Logs e Controle avançado
     const [logs, setLogs] = useState<{ message: string, type: string, timestamp: string }[]>([]);
     const [isPaused, setIsPaused] = useState(false);
-    const logsEndRef = React.useRef<HTMLDivElement>(null);
+    const logsEndRef = useRef<HTMLDivElement>(null);
 
     // Escuta logs Server-Sent Events do Backend
     useEffect(() => {
@@ -96,7 +95,61 @@ function App() {
         } catch (error) { }
     };
 
-    // (Outros handlers permanecem os mesmos)
+    const handleProspect = async (data: { companyName: string; city: string }) => {
+        setProspectStatus('generating');
+        setLoadingText("Iniciando orquestração no Backend (Stitch + Puppeteer)...");
+
+        try {
+            await axios.post(`${API_BASE_URL}/prospect`, {
+                companyName: data.companyName,
+                city: data.city
+            });
+
+            const steps = [
+                "Gerando Site com Google Stitch MCP...",
+                "Aguardando Renderização HD (Puppeteer)...",
+                "Capturando Screenshot...",
+                "Enviando Lead e Imagem para o n8n..."
+            ];
+
+            for (const step of steps) {
+                setLoadingText(step);
+                await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
+            }
+            setProspectStatus('success');
+        } catch (error) {
+            console.error("Erro ao chamar orquestrador:", error);
+            setProspectStatus('idle');
+            return;
+        }
+
+        setTimeout(() => {
+            setProspectStatus('idle');
+        }, 5000);
+    };
+
+    const handleSingleTest = async () => {
+        if (!testCompany || !testCity || !testNumber) return;
+        setTestStatus('generating');
+
+        try {
+            await axios.post(`${API_BASE_URL}/prospect/single`, {
+                companyName: testCompany,
+                city: testCity,
+                number: testNumber,
+                baseMessage: testMessage
+            });
+            setTimeout(() => setTestStatus('success'), 1500);
+        } catch (e) {
+            console.error(e);
+            setTestStatus('idle');
+        }
+
+        setTimeout(() => {
+            if (testStatus !== 'idle') setTestStatus('idle');
+        }, 6000);
+    };
+
     // ... no return do component (Aba disparador):
     return (
         <div className={`min-h-screen flex flex-col items-center py-10 transition-colors ${activeTab === 'prospector' ? 'bg-[#F5F5F7] text-[#1d1d1f] selection:bg-blue-500/30' : 'bg-gray-50'}`}>
@@ -262,9 +315,9 @@ function App() {
                                             )}
                                             {logs.map((log, index) => (
                                                 <div key={index} className={`leading-relaxed break-words ${log.type === 'error' ? 'text-red-400' :
-                                                        log.type === 'success' ? 'text-green-400' :
-                                                            log.type === 'warning' ? 'text-yellow-400' :
-                                                                'text-gray-300'
+                                                    log.type === 'success' ? 'text-green-400' :
+                                                        log.type === 'warning' ? 'text-yellow-400' :
+                                                            'text-gray-300'
                                                     }`}>
                                                     <span className="text-gray-600 mr-2">[{new Date(log.timestamp).toLocaleTimeString()}]</span>
                                                     {log.message}
