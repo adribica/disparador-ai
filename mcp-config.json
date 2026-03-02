@@ -1,0 +1,13 @@
+{
+    "mcpServers": {
+        "stitch": {
+            "command": "node",
+            "args": [
+                "c:/Users/Adriano/Documents/PROJETOS/ANTIGRAVITY TEMPLATE/disparador-ai/node_modules/@google/stitch-mcp/dist/index.js"
+            ],
+            "env": {
+                "GOOGLE_STITCH_API_KEY": "AQ.Ab8RN6LMSwguCmsw8DxF8fay5b_0OrZoh0zs8ryYW2-pgUk96A"
+            }
+        }
+    }
+}
