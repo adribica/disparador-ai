@@ -1,28 +1,28 @@
-# Design System: Dark SaaS Prospecting Flow
+# Design System: Apple-Inspired Minimalist Light Theme
 **Project ID:** 18171248685377189422
 
 ## 1. Visual Theme & Atmosphere
-The mood is "Premium, High-end Tech, and Mysterious." It feels like a cutting-edge software tool designed for elite professionals. We rely on a deep, almost total black background contrasted with sharp, luminous accents. Space should feel airy but structured. We embrace "glassmorphism"—translucent layers that convey depth without relying entirely on traditional drop shadows.
+The mood is "Premium, Clean, Minimalist, and High-End Corporate." It feels like stepping into an Apple Store or using a high-fidelity productivity tool created by Apple. We rely on a predominantly pure white and light gray background contrasted with sharp, deep black typography. Space should feel exceptionally airy and perfectly balanced. We avoid heavy gradients and instead use ultra-refined subtle shadows (soft dropshadows) to convey depth.
 
 ## 2. Color Palette & Roles
-*   **Abyss Void (#09090B):** The foundational background color. Used for the entire app canvas to create an infinite, borderless feel.
-*   **Starlight White (#FAFAFA):** Used for primary typography, icons, and hero messaging to ensure high contrast and readability against the dark void.
-*   **Muted Ghost (#A1A1AA):** Used for secondary text, metadata, and placeholders.
-*   **Electric Violet (#8B5CF6):** The primary brand/accent color. Used for primary calls-to-action (buttons), active states, and glowing hover effects.
-*   **Obsidian Layer (#18181A):** Used for card backgrounds, inputs, and isolated interactive sections to separate them slightly from the pure black background.
-*   **Frost Glass Border (#FFFFFF with 10% opacity):** Used purely for refined 1px strokes around glass panels and inputs.
+*   **Snow White (#FFFFFF):** The foundational background color. Used for the entire app canvas to create an infinite, crisp, clean feel.
+*   **Jet Black (#1D1D1F):** Used for primary typography, icons, and hero messaging to ensure absolute legibility and a premium stance. Very slightly softer than #000000.
+*   **Silver Cloud (#F5F5F7):** Used for secondary backgrounds, cards, and input fields to separate them slightly from the pure white background without being aggressive.
+*   **Graphite Gray (#86868B):** Used for secondary text, metadata, and subtle UI elements.
+*   **System Blue (#0066CC):** The primary brand/accent color. Used sparingly for primary calls-to-action (buttons), links, and active states to guide the eye flawlessly.
+*   **Subtle Border (#E5E5EA):** Used for extremely light 1px borders to define structure where empty space isn't enough.
 
 ## 3. Typography Rules
-*   **Primary Font:** Inter or equivalent modern, clean geometric sans-serif (e.g., Roboto/Outfit).
-*   **Headings (H1/H2):** High font-weight (Bold/Semibold), tight letter-spacing (`tracking-tight`), purely white (#FAFAFA).
-*   **Body & Utility:** Regular weight, slightly relaxed line-height for readability, rendered in Muted Ghost (#A1A1AA).
+*   **Primary Font:** San Francisco (SF Pro) or equivalent clean geometric neo-grotesque sans-serif (e.g., Inter/Roboto).
+*   **Headings (H1/H2):** High font-weight (Bold/Semibold), tight letter-spacing (`tracking-tight`), rendered in Jet Black.
+*   **Body & Utility:** Regular weight, comfortable line-height for perfect readability, rendered in Graphite Gray or Jet Black depending on importance.
 
 ## 4. Component Stylings
-*   **Buttons:** Subtly rounded corners (8px / `rounded-md` to `rounded-lg`). Primary buttons should be Electric Violet with a very faint drop shadow to create an "inner glow" effect. Text must be bold.
-*   **Cards/Containers:** Glass-like appearance. Background should be Obsidian Layer or mostly transparent gradients (`bg-white/5`). Corners must be generously rounded (12px to 16px / `rounded-xl`). Borders are essential: use a 1px Frost Glass Border.
-*   **Inputs/Forms:** Deep dark fields (`bg-transparent` or Obsidian Layer) surrounded by a 1px Frost Glass Border. On focus, the border transitions smoothly to Electric Violet to guide the user's eye.
+*   **Buttons:** Generously rounded corners (pill-shaped or `rounded-full`). Primary buttons should be System Blue with white text. No heavy shadows; rely on crisp contrast.
+*   **Cards/Containers:** Crisp appearance. Background should be Snow White or Silver Cloud. Corners must be generously rounded (16px to 24px / `rounded-2xl`). Borders are usually omitted in favor of very soft, large-spread drop shadows (e.g., `box-shadow: 0 4px 24px rgba(0,0,0,0.04)`), or a simple 1px Subtle Border if flat.
+*   **Inputs/Forms:** Clean fields with Silver Cloud backgrounds (`bg-[#F5F5F7]`). Minimal to no borders until focused, where a subtle System Blue ring appears.
 
 ## 5. Layout Principles
-*   **Whitespace:** Extremely generous. Sections should breathe. Margins and padding should be large (e.g., `p-6` or `p-8` for standard cards, `gap-6` for internal flex layouts).
-*   **Focus / Alignment:** Content should generally be center-aligned for single-purpose flows (like a prospecting form) to draw maximum attention to the primary action.
-*   **Depth:** Rather than simple CSS shadows (`shadow-md`), depth is created by layering slightly lighter transparent colors over the pure black background and using blurry lighting effects behind crucial components.
+*   **Whitespace:** "Extensive negative space." Let the content breathe heavily. Margins and padding should be huge (e.g., `p-8` or `p-12` for standard cards).
+*   **Focus / Alignment:** Content should be perfectly aligned, often center-aligned for hero sections and robustly left-aligned for data.
+*   **Depth:** Depth is created by very soft, elevated shadows beneath white cards sitting on top of a very light gray canvas, mimicking physical layers of high-quality paper.

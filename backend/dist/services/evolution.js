@@ -37,6 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendTextMessage = sendTextMessage;
+exports.sendMediaMessage = sendMediaMessage;
 const axios_1 = __importDefault(require("axios"));
 const dotenv = __importStar(require("dotenv"));
 dotenv.config();
@@ -93,6 +94,66 @@ async function sendTextMessage(number, text, delay = 1000) {
         }
         else {
             console.error(`[EVOLUTION API] Erro desconhecido no envio para +${cleanNumber}:`, error);
+        }
+        return false;
+    }
+}
+/**
+ * Envia uma mensagem de mídia (Imagem Base64) usando a Evolution API v2.
+ * Endpoint padrão: /message/sendMedia/{instanceName}
+ * @param number O número de telefone no formato internacional.
+ * @param base64 O arquivo em formato base64 nativo.
+ * @param caption Texto que vai junto com a imagem (opcional).
+ */
+async function sendMediaMessage(number, base64, caption = '') {
+    if (!isConfigured) {
+        console.error('Falha no envio de mídia: Evolution API não configurada.');
+        return false;
+    }
+    const cleanNumber = number.replace(/\D/g, ''); // Garante apenas dígitos
+    const endpoint = `${apiURL}/message/sendMedia/${instanceName}`;
+    // A Evolution API geralmente pede base64 puro ou mimetype. Vamos garantir que o formato está aceito.
+    // O Puppeteer gera base64 puro (sem o cabeçalho data:image/png;base64,).
+    // Precisa ter o cabeçalho se a API demandar, ou apenas definir mimetype abaixo.
+    // Tratativa para o mimetype se o base64 vier purinho
+    let finalBase64 = base64;
+    if (!base64.startsWith('data:')) {
+        finalBase64 = `data:image/png;base64,${base64}`;
+    }
+    try {
+        const response = await axios_1.default.post(endpoint, {
+            number: cleanNumber,
+            mediaMessage: {
+                mediatype: "image",
+                caption: caption,
+                media: finalBase64 // ou filename com formato URL/Base64 dependendo da versão da evo.
+            },
+            options: {
+                delay: 2000 // Atraso de simulação
+            }
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': apiKey,
+            },
+            timeout: 30000, // 30 segundos (upload de base64 pode ser pesado)
+        });
+        if (response.status === 200 || response.status === 201) {
+            console.log(`[EVOLUTION API] Mídia enviada com sucesso para +${cleanNumber}`);
+            return true;
+        }
+        else {
+            console.warn(`[EVOLUTION API] Retorno inesperado na mídia: ${response.status}`, response.data);
+            return false;
+        }
+    }
+    catch (error) {
+        if (axios_1.default.isAxiosError(error)) {
+            const axiosError = error;
+            console.error(`[EVOLUTION API] Erro no envio de mídia para +${cleanNumber}:`, axiosError.response?.data || axiosError.message);
+        }
+        else {
+            console.error(`[EVOLUTION API] Erro desconhecido no envio de mídia para +${cleanNumber}:`, error);
         }
         return false;
     }

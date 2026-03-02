@@ -4,34 +4,46 @@
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+    --background: 0 0% 100%;
+    /* Snow White */
+    --foreground: 240 5.9% 10%;
+    /* Jet Black */
 
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 5.9% 10%;
 
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 5.9% 10%;
 
-    --primary: 252 69% 51%;
-    /* Violet/Blue accent */
-    --primary-foreground: 0 0% 98%;
+    --primary: 210 100% 40%;
+    /* System Blue */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    /* Silver Cloud */
+    --secondary-foreground: 240 5.9% 10%;
 
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    /* Graphite Gray */
 
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --border: 240 5.9% 90%;
+    /* Subtle Border */
+    --input: 240 5.9% 90%;
+    --ring: 210 100% 40%;
+  }
+
+  /* Forced light mode */
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    /* Keep other dark vars if needed, but for now we enforce light */
   }
 }
 
@@ -43,11 +55,16 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
 @layer utilities {
   .glass {
-    @apply bg-white/5 backdrop-blur-md border border-white/10;
+    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-[0_4px_24px_rgba(0, 0, 0, 0.04)];
+  }
+
+  .glass-dark {
+    @apply bg-black/5 backdrop-blur-xl border border-black/5;
   }
 }

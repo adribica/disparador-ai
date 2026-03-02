@@ -10,17 +10,17 @@ interface GlassCardProps extends HTMLMotionProps<"div"> {
 export const GlassCard: React.FC<GlassCardProps> = ({
     children,
     className = "",
-    glowColor = "rgba(139, 92, 246, 0.15)", // Default Electric Violet glow
+    glowColor = "rgba(0, 102, 204, 0.03)", // Default Soft System Blue glow
     ...props
 }) => {
     return (
         <motion.div
-            className={`relative rounded-2xl border border-white/10 bg-[#18181A]/60 backdrop-blur-xl overflow-hidden shadow-2xl ${className}`}
+            className={`relative rounded-3xl border border-gray-100 bg-white/95 backdrop-blur-xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.06)] ${className}`}
             {...props}
         >
-            {/* Subtle ambient glow behind the card */}
+            {/* Subtle ambient glow behind the card (much more faint for light mode) */}
             <div
-                className="absolute -inset-[100px] opacity-50 blur-[80px] rounded-full pointer-events-none"
+                className="absolute -inset-[100px] opacity-30 blur-[60px] rounded-full pointer-events-none"
                 style={{
                     background: `radial-gradient(circle at 50% 0%, ${glowColor}, transparent 70%)`
                 }}
