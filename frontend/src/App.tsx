@@ -5,8 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from './components/GlassCard';
 import { ProspectForm } from './components/ProspectForm';
 
-// Puxa a URL pela variável de ambiente (Vercel) ou usa a VPS com nip.io como fallback seguro
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://213-199-53-53.nip.io/api';
+// Puxa a URL pela variável de ambiente (Vercel) ou cria túnel fixo loca.lt
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://disparador-api.loca.lt/api';
+
+// Burlar o aviso do Localtunnel (tela de Accept que bloqueia a Vercel/CORS)
+axios.defaults.headers.common['Bypass-Tunnel-Reminder'] = 'true';
 
 function App() {
     const [activeTab, setActiveTab] = useState<'disparador' | 'extractor' | 'prospector' | 'testador'>('testador');
