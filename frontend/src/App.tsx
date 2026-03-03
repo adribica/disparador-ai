@@ -5,10 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from './components/GlassCard';
 import { ProspectForm } from './components/ProspectForm';
 
-// Puxa a URL pela variável de ambiente (Vercel) ou cria túnel fixo loca.lt
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://disparador-api.loca.lt/api';
+// Puxa a URL pela variável de ambiente (Vercel) ou usa direto o Cloudflare Tunnel super robusto
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://vancouver-dem-ron-laden.trycloudflare.com/api';
 
-// Burlar o aviso do Localtunnel (tela de Accept que bloqueia a Vercel/CORS)
+// Burlar o aviso de Tunnels caso mude de cloudflare pra localtunnel de novo
 axios.defaults.headers.common['Bypass-Tunnel-Reminder'] = 'true';
 
 function App() {
