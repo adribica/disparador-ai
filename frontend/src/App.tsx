@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from './components/GlassCard';
 import { ProspectForm } from './components/ProspectForm';
 
-// Forçando a URL direta do Túnel para contornar qualquer cachê de variável presa na Vercel (late-hornets)
-const API_BASE_URL = 'https://disparador-api.loca.lt/api';
+// Forçando a URL direta do Cloudflare Tunnel (pois o localtunnel bloqueia o Preflight OPTIONS do Navegador)
+const API_BASE_URL = 'https://vancouver-dem-ron-laden.trycloudflare.com/api';
 
 // Burlar o aviso de Tunnels caso mude de cloudflare pra localtunnel de novo
 axios.defaults.headers.common['Bypass-Tunnel-Reminder'] = 'true';
