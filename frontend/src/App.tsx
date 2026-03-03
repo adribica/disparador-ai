@@ -36,19 +36,26 @@ function App() {
 
     // Escuta logs Server-Sent Events do Backend
     useEffect(() => {
-        if (!isRunning) return;
+        if (!isRunning && testStatus !== 'generating') return;
 
         const eventSource = new EventSource(`${API_BASE_URL}/logs`);
 
         eventSource.onmessage = (event) => {
             const newLog = JSON.parse(event.data);
             setLogs(prev => [...prev, newLog]);
+
+            // Fica de olho no log de Sucesso do webhook para liberar a UI
+            if (newLog.message.includes('[N8N CALLBACK] Sucesso')) {
+                setTestStatus('success');
+            } else if (newLog.message.includes('[N8N CALLBACK] Erro')) {
+                setTestStatus('idle'); // Retorna pra idle pra tentar de novo
+            }
         };
 
         eventSource.onerror = () => eventSource.close();
 
         return () => eventSource.close();
-    }, [isRunning]);
+    }, [isRunning, testStatus]);
 
     // Auto-scroll nos logs
     useEffect(() => {
@@ -134,6 +141,7 @@ function App() {
     const handleSingleTest = async () => {
         if (!testCompany || !testCity || !testNumber) return;
         setTestStatus('generating');
+        setLogs([]);
 
         try {
             await axios.post(`${API_BASE_URL}/prospect/single`, {
@@ -142,15 +150,11 @@ function App() {
                 number: testNumber,
                 baseMessage: testMessage
             });
-            setTimeout(() => setTestStatus('success'), 1500);
+            // O success agora vem do Webhook via SSE
         } catch (e) {
             console.error(e);
             setTestStatus('idle');
         }
-
-        setTimeout(() => {
-            if (testStatus !== 'idle') setTestStatus('idle');
-        }, 6000);
     };
 
     // ... no return do component (Aba disparador):
@@ -414,12 +418,46 @@ function App() {
                             {testStatus === 'success' && (
                                 <div className="bg-green-50 text-green-700 p-4 rounded-lg flex flex-col items-center justify-center border border-green-200 shadow-sm animate-fade-in-up">
                                     <CheckCircle2 className="w-8 h-8 mb-2 text-green-500" />
-                                    <p className="font-bold">Enviado!</p>
-                                    <p className="text-sm">Confira seu WhatsApp.</p>
+                                    <p className="font-bold">Processo Finalizado no n8n!</p>
+                                    <p className="text-sm">Confira seu WhatsApp / Webhook.</p>
+                                    <button onClick={() => setTestStatus('idle')} className="mt-3 text-sm underline text-green-800 font-semibold">Fazer outro teste</button>
                                 </div>
                             )}
 
-                            <div>
+                            {testStatus === 'generating' && (
+                                <div className="h-full flex flex-col pt-2 animate-fade-in mb-6">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex justify-between">
+                                        Progresso do Envio (Aguardando n8n)
+                                        <span className="text-xs font-normal text-blue-600">Tempo Real</span>
+                                    </label>
+                                    <div className="flex-1 min-h-[250px] max-h-[350px] bg-[#1d1d1f] rounded-xl overflow-hidden flex flex-col shadow-inner">
+                                        <div className="h-8 bg-[#2d2d2f] border-b border-[#3d3d3f] flex items-center px-4 gap-2">
+                                            <div className="w-3 h-3 rounded-full bg-red-500" />
+                                            <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                                            <div className="w-3 h-3 rounded-full bg-green-500" />
+                                            <span className="ml-2 text-xs text-gray-400 font-mono">logs@vercel-node</span>
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto p-4 space-y-2 font-mono text-xs">
+                                            {logs.length === 0 && (
+                                                <p className="text-gray-500 italic">Iniciando teste individual, conectando API...</p>
+                                            )}
+                                            {logs.map((log, index) => (
+                                                <div key={index} className={`leading-relaxed break-words ${log.type === 'error' ? 'text-red-400' :
+                                                    log.type === 'success' ? 'text-green-400' :
+                                                        log.type === 'warning' ? 'text-yellow-400' :
+                                                            'text-gray-300'
+                                                    }`}>
+                                                    <span className="text-gray-600 mr-2">[{new Date(log.timestamp).toLocaleTimeString()}]</span>
+                                                    {log.message}
+                                                </div>
+                                            ))}
+                                            <div ref={logsEndRef} />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className={testStatus === 'generating' ? 'opacity-50 pointer-events-none' : ''}>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Empresa a Simular</label>
                                 <input
                                     type="text"
@@ -430,7 +468,7 @@ function App() {
                                     disabled={testStatus === 'generating'}
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className={`grid grid-cols-2 gap-4 ${testStatus === 'generating' ? 'opacity-50 pointer-events-none' : ''}`}>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">Cidade Base</label>
                                     <input
@@ -455,7 +493,7 @@ function App() {
                                 </div>
                             </div>
 
-                            <div>
+                            <div className={testStatus === 'generating' ? 'opacity-50 pointer-events-none' : ''}>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Mensagem Exemplo</label>
                                 <textarea
                                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -469,10 +507,12 @@ function App() {
                             <button
                                 onClick={handleSingleTest}
                                 disabled={testStatus === 'generating' || !testCompany || !testCity}
-                                className="w-full bg-[#1d1d1f] disabled:bg-gray-400 hover:bg-black text-white font-bold py-3.5 px-6 rounded-lg transition-transform active:scale-[0.98] flex justify-center items-center gap-2 shadow-lg"
+                                className={`w-full text-white font-bold py-3.5 px-6 rounded-lg transition-transform flex justify-center items-center gap-2 shadow-lg ${testStatus === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-[#1d1d1f] hover:bg-black disabled:bg-gray-400 active:scale-[0.98]'}`}
                             >
                                 {testStatus === 'generating' ? (
                                     <><Loader2 className="w-5 h-5 animate-spin" /> Processando Teste...</>
+                                ) : testStatus === 'success' ? (
+                                    <><CheckCircle2 className="w-5 h-5" /> Testar Novamente</>
                                 ) : (
                                     <><Play className="w-5 h-5" /> Enviar Teste Imediato </>
                                 )}
